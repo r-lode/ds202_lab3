@@ -1,0 +1,212 @@
+---
+title: "individual1"
+author: "Ryan Lode"
+date: "9/27/2020"
+output: html_document
+---
+
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+```{r,message = FALSE }
+library(readxl)
+library(tidyverse)
+```
+```{r, message = FALSE, include = FALSE}
+GSSdata <- read_excel('./GSS.xls', sheet='Data')
+```
+
+1.Find the average years of education for the respondents with each political party affiliation. Arrange your output in a meaningful order and print. Describe any patterns you find.
+
+
+First the GSSdata column names are adjusted to include underscores instead
+of spaces. Completed education is converted into numeric values and party affiiliation is modified into a factor. Then, party affilation is grouped by and we declare a variable AverageEducation with the mean of the completed education, before displaying it in increasing order. 
+
+
+```{r, warning=FALSE, message=FALSE}
+names(GSSdata) <- c('Gss_year', 'general_happiness', 'Welfare', 'drug_addiction', 'national_health', 'environment','party_affiliation','completed_education','respondent_age','marital_status', 'respondent_id', 'ballot_used')
+GSSdata <- GSSdata %>%
+  mutate(completed_education = as.numeric(completed_education), 
+        party_affiliation = as.factor(party_affiliation))
+
+GSSdata %>%
+  group_by(party_affiliation) %>%
+  summarise(AverageEducation = mean(completed_education,na.rm = TRUE)) %>%
+  arrange(AverageEducation)
+
+```
+
+**Analysis: **From the output, we can we see that those whose political party is Strong Republican have highest mean education level. Those who don't know their party affiliation have the lowest mean education level. 
+
+
+2.Create a single data frame containing records for the better educated respondents in each political party affiliation. A “better educated” respondent is someone who has strictly more years of education than the median in the same party affiliation. Print the structure of the data frame.
+
+```{r}
+betterEducated <- GSSdata %>% group_by(party_affiliation) %>% 
+  filter(completed_education > median(completed_education, na.rm = TRUE))
+
+betterEducated <-betterEducated[order(betterEducated$completed_education),]
+
+str(betterEducated)
+```
+
+```{r}
+head(betterEducated[,4:8])
+```
+
+**Analysis : ** Examining the tibble, we can see that the completed education years don't fall below a certain number within political party affiliations.
+
+3.How is the happiness of a respondent related to his/her marriage status? Define that a person is happy if the response to question is “Very happy” or “Pretty happy”.
+
+
+**Part1: ** A new tibble, HappyVsMarriageStatus is created from GSSdata
+Next, the dataframe is cleaned with na.omit and a series
+of filter statements.Marital status and party affiliation columns are 
+then converted to factors.
+
+```{r}
+HappyVsMarriageStatus <-GSSdata
+
+HappyVsMarriageStatus = na.omit(HappyVsMarriageStatus)
+HappyVsMarriageStatus <- HappyVsMarriageStatus %>%
+  filter(!HappyVsMarriageStatus$general_happiness %in% c('No answer','Not applicable','Don\'t know')) 
+HappyVsMarriageStatus <-HappyVsMarriageStatus %>%
+  filter(!HappyVsMarriageStatus$marital_status %in% c('No answer'))
+HappyVsMarriageStatus<-HappyVsMarriageStatus %>%
+  filter(!HappyVsMarriageStatus$party_affiliation %in% c('Don\'t know', 'No answer'))
+
+maritalStatus <-c('Married','Widowed','Divorced','Separated','Never married')
+HappyVsMarriageStatus$marital_status <-factor(HappyVsMarriageStatus$marital_status, levels = maritalStatus)
+
+politicalParty <- c('Other party','Strong democrat', 'Not str democrat','Ind,near dem','Independent','Ind,near rep', 'Not str republican','Strong republican')
+HappyVsMarriageStatus$party_affiliation <-factor(HappyVsMarriageStatus$party_affiliation, levels = politicalParty)
+```
+```{r}
+HappyVsMarriageStatus %>%
+  group_by(general_happiness, marital_status) %>%
+  ggplot(aes(x=marital_status, fill= general_happiness)) +
+ geom_bar(position = 'fill') +scale_fill_brewer(palette="Paired") + ggtitle('Marital Status vs. Happiness') + 
+ ylab('Frequency') + xlab('Marital Status')
+```
+
+**Part2: **A new tibble GSSdataVeryHappy was created by
+calling count on columns marital_status and general_happiness
+and then grouping by those two columns. A new column indicating the
+denoting the frequency of each occurrance was generated as well.
+
+```{r}
+GSSdataVeryHappy <-HappyVsMarriageStatus %>%
+  count(marital_status, general_happiness) %>%
+  group_by(marital_status, general_happiness) %>%
+  ungroup
+
+GSSdataVeryHappy <-GSSdataVeryHappy  %>%
+  mutate((freq = n /sum(GSSdataVeryHappy$n)) * 100)
+
+
+GSSdataVeryHappy <-GSSdataVeryHappy %>%
+  filter(GSSdataVeryHappy$general_happiness %in% c('Very happy', 'Pretty happy'))
+
+names(GSSdataVeryHappy)[names(GSSdataVeryHappy) == "(freq = n/sum(GSSdataVeryHappy$n)) * 100"] <- 'Relative Frequency'
+GSSdataVeryHappy <-GSSdataVeryHappy[order(GSSdataVeryHappy$`Relative Frequency`, decreasing = TRUE), ]
+```
+
+```{r}
+head(GSSdataVeryHappy)
+
+```
+
+**Analysis: **Analysis: For the general population, of those who reported being either pretty happy' or 'very happy', the majority of them were married. Respondents who were separated from their partners appear to have the lowest percentage of people, among the different categories of marital status, to report being 'Very Happy'.
+
+4.Does party affiliation affect the relationship you found in the last question?
+
+General Happiness and marital status were grouped by marital status and
+general happiness and then separated by political party. 
+The resulting plot shows the  proportions of people, given a political
+party and marriage status, who are either very happy, pretty happy,
+or not too happy.A new tibble 'Strong Republicans' was created that 
+focuses solely on people with that particular party affiliation.
+StrongRepublicans is further filtered to only include married
+Republicans who listed themselves as either 'Very happy' or 'Pretty happy'A relative frequency column was added as well. 
+
+```{r,fig.width=10, fig.height=4}
+HappyVsMarriageStatus %>%
+  group_by(general_happiness, marital_status) %>%
+  ggplot(aes(x=marital_status, fill= general_happiness)) + geom_bar(position = 'fill') +scale_fill_brewer(palette="Paired") + theme(axis.text.x = element_text(angle = 90, hjust = 1))+
+  facet_grid(~party_affiliation) +ylab('Frequency') + xlab('Marital Status') +
+  ggtitle('Marital Status vs. Happiness by Party Affiliation')
+```
+
+```{r}
+StrongRepublicans <- HappyVsMarriageStatus %>%
+  count(marital_status, general_happiness, party_affiliation) %>%
+  group_by(marital_status,general_happiness, party_affiliation) %>%
+  ungroup
+StrongRepublicans <-StrongRepublicans %>%
+  filter(StrongRepublicans$party_affiliation %in% c('Strong republican'))
+MarriedRepublicans <-StrongRepublicans %>%
+  filter(StrongRepublicans$marital_status %in% c('Married'))
+
+MarriedRepublicans <-MarriedRepublicans %>%
+  mutate((freq = n /sum(MarriedRepublicans$n)) * 100) %>% 
+  ungroup
+  
+names(MarriedRepublicans)[names(MarriedRepublicans) == "(freq = n/sum(MarriedRepublicans$n)) * 100"] <- 'Relative Frequency %'
+
+MarriedRepublicans <-MarriedRepublicans[order(MarriedRepublicans$`Relative Frequency %`, decreasing = TRUE),]
+
+
+```
+
+```{r}
+print(MarriedRepublicans[,])
+```
+
+**Analysis: **Examining the frequency plot, Strong republicans seem to have an edge in terms of overall happiness. Filtering by Strong republicans and married shows that married republicans are overall, quite happy. In fact, over 95% of married Republicans report being either 'Very happy' 'pretty happy'.
+
+
+5.A histogram and boxplot were generated from the tibble HappyVsMarriageStatus, both of which show the distribution of the education level in years for all survey respondents.Then summary education statistics were generated for the 'Divorced'and 'Widowed' categories. 
+
+```{r}
+HappyVsMarriageStatus %>%
+  group_by(marital_status) %>%
+  ggplot(aes(x=completed_education)) +geom_histogram() + facet_grid(~marital_status) +
+  ylab('Number of Respondents') + xlab('Completed Education(Years)') + ggtitle('Distribution of Completed Education by Marital Status')
+```
+
+
+```{r}
+HappyVsMarriageStatus %>%
+  group_by(marital_status) %>%
+  ggplot(aes(x=completed_education)) +geom_boxplot() + facet_grid(~marital_status,)+ coord_flip()+
+  xlab('Completed Education (Years)') + theme(axis.text.x = element_blank(),axis.ticks.x  = element_blank()) + 
+  ggtitle('Boxplot Distribution of Completed Education by Marital Status')
+
+```
+
+```{r}
+divorcedEducation<-HappyVsMarriageStatus %>%
+  filter(marital_status %in% c('Divorced'))
+
+NeverMarriedEduc <-HappyVsMarriageStatus %>%
+  filter(marital_status %in% c('Never married'))
+
+marriedEducation <-HappyVsMarriageStatus %>%
+  filter(marital_status %in% c('Married'))
+```
+
+```{r}
+summary(divorcedEducation$completed_education)
+summary(NeverMarriedEduc$completed_education)
+summary(marriedEducation$completed_education)
+```
+
+**Analysis: **Analysis:Examining the boxplots and summary statistics, it appears as though divorced respondents had the highest median education level. Married people had a median education level identical to the Q1 value. This is probably due to the very large spike in 
+seen in the histogram. Those who were never married report the highest(tied with those) who were divorced) median education level and the highest Q3 value. Perhaps those who chose not to marry instead focused on continuing their education or research.
+
