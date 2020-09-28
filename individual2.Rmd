@@ -1,0 +1,124 @@
+---
+title: "Individual1"
+author: "Jonathan Kelly"
+date: "9/26/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+dat <- readxl::read_xls('JonGSS.xls')
+dat$`Highest year of school completed` <- as.numeric(dat$`Highest year of school completed`)
+dat <- na.omit(dat)
+head(dat)
+```
+
+#1
+
+```{r}
+library(dplyr)
+library(ggplot2)
+educationAndPolitics <- dat %>% group_by(`Political party affiliation`) %>% dplyr::summarise(Mean=mean(`Highest year of school completed`, na.rm=TRUE)) %>% arrange(Mean)
+educationAndPolitics
+
+ggplot(dat, aes(x=reorder(`Political party affiliation`, `Highest year of school completed`, FUN = median), y=`Highest year of school completed`)) + geom_boxplot(alpha = 0) + theme(axis.text.x = element_text(angle = 45, hjust = 1)) + xlab('Political party')
+```
+
+Strong republicans are the most educated political group in this dataset. Interestingly "near republican", "near democrat" and "other party", all beat "strong democrat" which is the other main party but is only the 4th highest educated group.
+"Strong Democrat" to "Ind, near Dem" also has the biggest increase in years of education between any 2 groups.
+
+#2
+
+```{r}
+moreEducated <- data.frame()
+moreEducated <- dat %>% group_by(`Political party affiliation`) %>% filter(`Highest year of school completed` > median(`Highest year of school completed`, na.rm=TRUE))
+
+amountOfMoreEducated <- nrow(moreEducated) / nrow(dat)
+amountOfMoreEducated
+```
+43% have a greater education than their political party
+
+#3
+
+```{r}
+happyDf <- filter(dat, `General happiness` == "Very happy" | `General happiness` == "Pretty happy", na.rm=TRUE)
+unhappyDf <- filter(dat, `General happiness` != "Very happy" & `General happiness` != "Pretty happy")
+
+ggplot(happyDf, aes(`Marital status`)) + geom_bar() + labs(x = "Marital Status", y = "Count", title = "Marital Status of Happy Respondents")
+ggplot(unhappyDf, aes(`Marital status`)) + geom_bar() + labs(x = "Marital Status", y = "Count", title = "Marital Status of Un-Happy Respondents")
+
+married <- filter(dat, `Marital status` == 'Married')
+percentageOfMarried <- nrow(married) / nrow(dat)
+percentageOfMarried
+
+marriedHappy <- filter(happyDf, `Marital status` == 'Married')
+percentageOfMarriedHappy <- nrow(marriedHappy) / nrow(married)
+percentageOfMarriedHappy
+
+marriedUnhappy <- filter(unhappyDf, `Marital status` == 'Married')
+percentageOfMarriedUnhappy <- nrow(marriedUnhappy) / nrow(married)
+percentageOfMarriedUnhappy
+```
+
+53% of respondents in the dataset are married, 86% of them are happy so only 14% are not, so in general if a person is married they are happy.
+
+#4
+
+```{r,fig.width=10, fig.height=4}
+percentageOfMarriedUnhappyDem <- nrow(filter(marriedUnhappy, `Political party affiliation` == "Strong democrat" | `Political party affiliation` == "Not str democrat")) / nrow(filter(marriedHappy, `Political party affiliation` == "Strong democrat" | `Political party affiliation` == "Not str democrat"))
+percentageOfMarriedUnhappyDem
+
+percentageOfMarriedUnhappyInd <- nrow(filter(marriedUnhappy, `Political party affiliation` == "Independent")) / nrow(filter(marriedHappy, `Political party affiliation` == "Independent"))
+percentageOfMarriedUnhappyInd
+
+percentageOfMarriedUnhappyRep <- nrow(filter(marriedUnhappy, `Political party affiliation` == "Strong republican" | `Political party affiliation` == "Not str republican")) / nrow(filter(marriedHappy, `Political party affiliation` == "Strong republican"| `Political party affiliation` == "Not str republican"))
+percentageOfMarriedUnhappyRep
+
+politicalMaritalStatusAndHappiness <- filter(dat, `Political party affiliation` != "No answer" & `Political party affiliation` != "Don't know", na.rm=TRUE)
+politicalMaritalStatusAndHappiness <- filter(politicalMaritalStatusAndHappiness, `General happiness` == "Very happy" | `General happiness` == "Pretty happy" | `General happiness` == "Not too happy", na.rm=TRUE)
+politicalMaritalStatusAndHappiness <- filter(politicalMaritalStatusAndHappiness, `Marital status` != "No answer", na.rm=TRUE)
+
+politicalMaritalStatusAndHappiness %>% group_by(`General happiness`, `Marital status`) %>% ggplot(aes(x=`Marital status`, fill = `General happiness`)) + geom_bar(position = 'fill') +scale_fill_brewer(palette="Paired") + theme(axis.text.x = element_text(angle = 90, hjust = 1))+
+  facet_grid(~`Political party affiliation`) + xlab('Marital Status') +
+  ggtitle('Marital Status and Happiness by Political Party')
+```
+
+Out of people who are married and unhappy, %16 are democrats, %14 are republicans and %23 are Independents. So by siding with one of the major parties a married indivual is happier than married Independents but married republicans are happier.
+
+#5
+
+```{r}
+dat %>% group_by(`Marital status`) %>% ggplot(aes(x=`Highest year of school completed`)) + geom_boxplot() + facet_grid(~`Marital status`,)+ coord_flip()+
+  xlab('years of education') + theme(axis.text.x = element_blank(),axis.ticks.x  = element_blank()) + 
+  ggtitle('Completed Education by Marital Status')
+
+married <- filter(dat, `Marital status` == 'Married')
+divorced <- filter(dat, `Marital status` == 'Divorced')
+neverMarried <- filter(dat, `Marital status` == 'Never married')
+
+summary(married$`Highest year of school completed`)
+summary(divorced$`Highest year of school completed`)
+summary(neverMarried$`Highest year of school completed`)
+```
+
+the mean value of years of education is highest in those who never married, then divorced and finally married. So according to this dataset, those who are married are less educated than those who are divorced or never married.
+
+#6
+
+```{r}
+maleHappy <- filter(happyDf, `Respondents sex` == 'Male')
+femaleHappy <- filter(happyDf, `Respondents sex` == 'Female')
+
+percentOfHappyMales <- nrow(maleHappy) / nrow(filter(dat, `Respondents sex` == 'Male'))
+percentOfHappyMales
+
+percentOfHappyFemales <- nrow(femaleHappy) / nrow(filter(dat, `Respondents sex` == 'Female'))
+percentOfHappyFemales
+
+ggplot(happyDf, aes(`Respondents sex`)) + geom_bar() + labs(x = "Respondents sex", y = "Count", title = "Marital Status of Happy Respondents")
+```
+
+Here I compared the happiness of the 2 sexes. The two sexes were happy basically the same amount, both at ~81% of responses. 
