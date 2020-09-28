@@ -1,0 +1,12 @@
+---
+title: "Team"
+author: "Jonathan Kelly"
+date: "9/28/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+All work done individually.
