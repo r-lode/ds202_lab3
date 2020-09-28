@@ -1,0 +1,169 @@
+---
+title: "individual2"
+author: "Max Wisnieski"
+date: "9/22/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(dplyr)
+```
+
+```{r}
+dat <- readxl::read_xls('GSSMax.xls')
+dat <- rename(dat, Year = 'Gss year for this respondent')
+dat <- rename(dat, Income = 'Respondent income in constant dollars')
+dat <- rename(dat, General_happiness = 'General happiness')
+dat <- rename(dat, Political_party = 'Political party affiliation')
+dat <- rename(dat, Gender = 'Respondents sex')
+dat <- rename(dat, Education = 'Highest year of school completed')
+dat <- rename(dat, Age = 'Age of respondent')
+dat <- rename(dat, Marital_status = 'Marital status')
+dat <- rename(dat, ID = 'Respondent id number')
+dat$Education <- as.numeric(dat$Education)
+datAge <- as.numeric(dat$Age)
+str(dat)
+```
+
+**1. **Find the average years of education for the respondents with each political party affiliation. Arrange your output in a meaningful order and print. Describe any patterns you find.
+
+```{r}
+dat$Political_party <- factor(dat$Political_party, levels = c("Strong democrat", "Not str democrat", "Ind,near dem", "Independent", "Ind,near rep", "Not str republican", "Strong republican", "Don't know", "No answer", "NA"))
+ggplot(dat, aes(Education)) + geom_histogram() + facet_wrap(~Political_party, scales = "free_x") + labs(x = "Years of Education Completed", y = "Count", title = "Years of Education by Political Party Affiliation")
+StrDemocrat <- dat[dat$Political_party == "Strong democrat", 'Education']
+summary(StrDemocrat)
+NotStrDemocrat <- dat[dat$Political_party == "Not str democrat", 'Education']
+summary(NotStrDemocrat)
+IndDemocrat <- dat[dat$Political_party == "Ind,near dem", 'Education']
+summary(IndDemocrat)
+Independent <- dat[dat$Political_party == "Independent", 'Education']
+summary(Independent)
+IndRepublican <- dat[dat$Political_party == "Ind,near rep", 'Education']
+summary(IndRepublican)
+NotStrRepublican <- dat[dat$Political_party == "Not str republican", 'Education']
+summary(NotStrRepublican)
+StrRepublican <- dat[dat$Political_party == "Strong republican", 'Education']
+summary(StrRepublican)
+DontKnow <- dat[dat$Political_party == "Don't know", 'Education']
+summary(DontKnow)
+NoAnswer <- dat[dat$Political_party == "No answer", 'Education']
+summary(NoAnswer)
+Na <- dat[dat$Political_party == "NA", 'Education']
+summary(Na)
+```
+
+- **Analysis: **The highest average years of education completed is 13.44 years, which comes from those with strong republican affiliation. The lowest average years of education completed is  10.91, which comes from those who don't know which party they are affiliated with. Looking at the histograms they all appear to be slightly left skewed with a very large mode centered at 12. It can then be assumed that the majority of respondents completed 12 years of education.
+
+**2. **Create a single data frame containing records for the better educated respondents in each political party affiliation. A “better educated” respondent is someone who has strictly more years of education than the median in the same party affiliation. Print the structure of the data frame.
+
+```{r}
+datsmart <- data.frame()
+l <- levels(dat$Political_party)
+for (val in l) {
+  t <- dat[dat$Political_party == val,]
+  t <- filter(t, Education > median(t$Education, na.rm = TRUE))
+  datsmart <- rbind(datsmart, t)
+}
+str(datsmart)
+```
+
+- **Analysis: **It appears as though about 42% of the original data frame has more years of education than the median for each party
+
+**3. **How is the happiness of a respondent related to his/her marriage status? Define that a person is happy if the response to question is “Very happy” or “Pretty happy”.
+
+```{r}
+dat$Marital_status <- factor(dat$Marital_status, levels = c("Never married", "Married", "Divorced", "Separated", "Widowed", "No answer", "NA"))
+happy <- filter(dat, General_happiness == "Very happy" | General_happiness == "Pretty happy")
+unhappy <- filter(dat, General_happiness != "Very happy" & General_happiness != "Pretty happy")
+ggplot(happy, aes(Marital_status)) + geom_bar() + labs(x = "Marital Status", y = "Count", title = "Marital Status of Happy Respondents")
+ggplot(unhappy, aes(Marital_status)) + geom_bar() + labs(x = "Marital Status", y = "Count", title = "Marital Status of Unhappy Respondents")
+Percentage_Married_Happy <- length(filter(happy, Marital_status == "Married")$ID) / length(happy$ID) * 100
+Percentage_Married_Happy
+Percentage_Married_Unhappy <- length(filter(unhappy, Marital_status == "Married")$ID) / length(unhappy$ID) * 100
+Percentage_Married_Unhappy
+```
+
+- **Analysis: **Marital status does seem to have a slight affect on the happiness of the respondents. The histograms for happy and unhappy respondents followed the exact same pattern with the majority of the respondents being married; followed by never married, divorced widowed, and separated, in that order. However, 56% of the happy respondents were married while only 38% of the unhappy were married, so it appears as though marriage increases happiness.
+
+**4. **Does party affiliation affect the relationship you found in the last question?
+
+```{r}
+ggplot(happy, aes(Marital_status)) + geom_bar() + facet_wrap(~Political_party) + labs(x = "Marital Status", y = "Count", title = "Marital Status of Happy Respondents by Political Party") + coord_flip()
+ggplot(unhappy, aes(Marital_status)) + geom_bar() + facet_wrap(~Political_party) + labs(x = "Marital Status", y = "Count", title = "Marital Status of Unhappy Respondents by Political Party") + coord_flip()
+Percentage_Married_Happy_StrDemocrat <- length(filter(happy, Marital_status == "Married" & Political_party == "Strong democrat")$ID) / length(filter(happy, Political_party == "Strong democrat")$ID) * 100
+Percentage_Married_Happy_StrDemocrat
+Percentage_Married_Unhappy_StrDemocrat <- length(filter(unhappy, Marital_status == "Married" & Political_party == "Strong democrat")$ID) / length(filter(unhappy, Political_party == "Strong democrat")$ID) * 100
+Percentage_Married_Unhappy_StrDemocrat
+Percentage_Married_Happy_Independent <- length(filter(happy, Marital_status == "Married" & Political_party == "Independent")$ID) / length(filter(happy, Political_party == "Independent")$ID) * 100
+Percentage_Married_Happy_Independent
+Percentage_Married_Unhappy_Independent <- length(filter(unhappy, Marital_status == "Married" & Political_party == "Independent")$ID) / length(filter(unhappy, Political_party == "Independent")$ID) * 100
+Percentage_Married_Unhappy_Independent
+Percentage_Married_Happy_StrRepublican <- length(filter(happy, Marital_status == "Married" & Political_party == "Strong republican")$ID) / length(filter(happy, Political_party == "Strong republican")$ID) * 100
+Percentage_Married_Happy_StrRepublican
+Percentage_Married_Unhappy_StrRepublican <- length(filter(unhappy, Marital_status == "Married" & Political_party == "Strong republican")$ID) / length(filter(unhappy, Political_party == "Strong republican")$ID) * 100
+Percentage_Married_Unhappy_StrRepublican
+```
+
+- **Analysis: **Political party affiliation has little to no affect on the marital status of happy and unhappy respondents. When the histograms are divided up by political party, they all still follow the exact same pattern as before. While this is some slight variations in percentage of married respondents, it is all very similar to previous percentages.
+
+**5. **How is marital status related to the education of a respondent? What are possible reasons accounting for the patterns you see?
+
+```{r}
+ggplot(dat, aes(Education)) + geom_histogram() + facet_wrap(~Marital_status, scales = "free_x") + labs(x = "Years of Education Completed", y = "Count", title = "Years of Education by Marital Status")
+ggplot(dat, aes(Marital_status, Education)) + geom_boxplot() + labs(x = "Marital Status", y = "Years", title = "Years of Education by Marital Status")
+
+NeverMarried <- dat[dat$Marital_status == "Never married", 'Education']
+summary(NeverMarried)
+Married <- dat[dat$Marital_status == "Married", 'Education']
+summary(Married)
+Divorced <- dat[dat$Marital_status == "Divorced", 'Education']
+summary(Divorced)
+Separated <- dat[dat$Marital_status == "Separated", 'Education']
+summary(Separated)
+Widowed <- dat[dat$Marital_status == "Widowed", 'Education']
+summary(Widowed)
+```
+
+- **Analysis: **All of the histograms for the numbers of years completed follow roughly the same pattern, slightly skewed left with the largest mode at the value of 12. Looking at the average years, the highest of 13.39 comes from the never married category, while the lowest, of 11.2, comes from the widowed category. I think that never married is the highest because those who spend more time in school will have less time to look for relationships. I think the lowest comes from widowed because it is possible those who don't attend all of college may not make a lot of money, and thus medical issues will be hard to pay for, leading to more widows.
+
+**6. **Explore two more interesting questions, and answer those questions using the GSS data.
+
+- For my fist exploration I would like to see how income affects overall happiness.
+
+```{r}
+dat$General_happiness <- factor(dat$General_happiness, levels = c("Very happy", "Pretty happy", "Not too happy", "Don't know", "No answer", "Not applicable", "NA"))
+ggplot(dat, aes(Income)) + geom_boxplot() + facet_wrap(~General_happiness, scales = "free_y") + coord_flip() + labs(x = "Income", title = "Income by Happiness Level")
+VeryHappy_Income <- filter(select(dat, General_happiness, Income), General_happiness == "Very happy")
+summary(VeryHappy_Income)
+PrettyHappy_Income <- filter(select(dat, General_happiness, Income), General_happiness == "Pretty happy")
+summary(PrettyHappy_Income)
+NotTooHappy_Income <- filter(select(dat, General_happiness, Income), General_happiness == "Not too happy")
+summary(NotTooHappy_Income)
+DontKnow_Income <- filter(select(dat, General_happiness, Income), General_happiness == "Don't know")
+summary(DontKnow_Income)
+NotApplicable_Income <- filter(select(dat, General_happiness, Income), General_happiness == "Not applicable")
+summary(NotApplicable_Income)
+```
+
+- **Analysis: **The box plots for these variables are very hard to read, but this is due to a lot of people putting 0 as their income for each category. Looking at the summary statistics for the three actual happiness levels gives us better information. The highest average income is 20,152 and comes from the very happy category. The lowest average is 11,505 which comes from the not too happy category. This follows exactly how I expected because having a higher income allows people to live more comfortably, without the stress of living paycheck to paycheck.
+
+-For my next exploration I would like to see how age affects overall happiness.
+
+```{r}
+dat$Age <- as.numeric(dat$Age)
+ggplot(dat, aes(Age)) + geom_boxplot() + facet_wrap(~General_happiness, ) + coord_flip() +labs(x = "Age", title = "Age by Happiness level")
+VeryHappy_Age <- filter(select(dat, General_happiness, Age), General_happiness == "Very happy")
+summary(VeryHappy_Age)
+PrettyHappy_Age <- filter(select(dat, General_happiness, Age), General_happiness == "Pretty happy")
+summary(PrettyHappy_Age)
+NotTooHappy_Age <- filter(select(dat, General_happiness, Age), General_happiness == "Not too happy")
+summary(NotTooHappy_Age)
+DontKnow_Age <- filter(select(dat, General_happiness, Age), General_happiness == "Don't know")
+summary(DontKnow_Age)
+NotApplicable_Age <- filter(select(dat, General_happiness, Age), General_happiness == "Not applicable")
+summary(NotApplicable_Age)
+```
+
+- **Analysis: **Looking at the graphs and summary statistics, age seems to have very little affect on general happiness level. All of the categories had an average age of 44 to 47. The only category that was significantly different was the don't know category which had an average age of 54. However, since they didn't give an actual happiness level the category isn't very useful. I was expecting either young people to be the happiest, or old people to be the happiest due to retirement, but I was wrong on both of those guesses.
