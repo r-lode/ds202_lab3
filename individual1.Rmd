@@ -5,9 +5,6 @@ date: "9/27/2020"
 output: html_document
 ---
 
-
-
-
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
@@ -210,3 +207,113 @@ summary(marriedEducation$completed_education)
 **Analysis: **Analysis:Examining the boxplots and summary statistics, it appears as though divorced respondents had the highest median education level. Married people had a median education level identical to the Q1 value. This is probably due to the very large spike in 
 seen in the histogram. Those who were never married report the highest(tied with those) who were divorced) median education level and the highest Q3 value. Perhaps those who chose not to marry instead focused on continuing their education or research.
 
+
+6a.How does political party affiliation impact views on the environment? What is the education level distribution of those who think the government is doing too little to protect the environment?
+
+A new tibble environment was created.Then, the environmental column was 
+factorized. Several filter statements were then used to clean the data.
+A plot showing the proportions environmental views was then generated with ggplot. Finally, a new tibble TooLittle was created that only contained data from those who answered whether the government was doing 'Too little' to protect the environment. Summary statistics were then generated on the education level of the respondents.
+
+```{r}
+environment <-GSSdata
+
+
+politicalParty2 <- c('Other party','Strong democrat', 'Not str democrat','Ind,near dem','Independent','Ind,near rep', 'Not str republican','Strong republican')
+environment$party_affiliation <-factor(environment$party_affiliation, levels = politicalParty2)
+
+environmentalCare <- c('Too much','About right','Too little')
+environment$environment<-factor(environment$environment, levels = environmentalCare)
+environment <-environment %>%
+  filter(!is.na(environment))
+
+environment <-environment %>%
+  filter(!environment %in% c('No answer','Don\'t know','Not applicable', 'NA'))
+
+environment <-environment %>%
+  filter(!party_affiliation %in% c('Don\'t know','No answer', 'NA'))
+
+environment = na.omit(environment)
+
+environment <-environment %>%
+  filter(!party_affiliation %in% c('Don\'t know','No answer', 'NA'))
+
+environment %>%
+  group_by(party_affiliation) %>%
+  ggplot(aes(x = party_affiliation, fill = environment)) + geom_bar(position = 'fill') + theme(axis.text.x = element_text(angle = 90, hjust = 1)) +ggtitle('Party Affiliation vs Environmental Views')
+```
+
+```{r}
+TooLitte <-environment
+```
+
+```{r}
+TooLitte <-TooLitte %>%
+  filter(environment %in% c('Too little'))
+summary(TooLitte$completed_education)
+```
+
+**Analysis: ** Examining the plot, the proportions of respondents who
+think the United States is doing too little to protect the environment
+declines as the views become more conservative. This makes sense given
+the party's historical platform. Summary statistics of those who think
+the government is doing too little to protect the environment, show an 
+IQR of 3 years, but the median was the same as Q1-12 years. 
+
+6b.)How does political party affiliation impact views on welfare? What is the mean education level given that the respondents view
+the government supports welfare too much?
+
+A new tibble, Welfare, was created, then it's welfare and political party columns were factorized. A series of filter statemnts were then used to clean the data. A staggered bar chart showing the counts of Welfare views
+by political party was then generated.Finally, a new tibble called TooMuch was generated that focused on those respondents who view that the government is supporting welfare too much. Given that 'Strong Republicans' had the highest mean education level, we might expect the mean education level in the TooMuch tibble might be high. 
+
+```{r}
+Welfare <-GSSdata
+
+
+
+Welfare <-Welfare %>%
+  mutate(Welfare = as.factor(Welfare))
+
+
+
+GeneralWelfare <- c('Too little','About right','Too much')
+
+Welfare$Welfare<-factor(Welfare$Welfare, levels = GeneralWelfare)
+
+politicalParty3 <- c('Other party','Strong democrat', 'Not str democrat','Ind,near dem','Independent','Ind,near rep', 'Not str republican','Strong republican')
+Welfare$party_affiliation <-factor(Welfare$party_affiliation, levels = politicalParty3)
+
+Welfare <-Welfare %>%
+  filter(!Welfare %in% c('Don\'t know','No answer', 'NA', 'Not applicable'))
+
+Welfare <-Welfare %>%
+  filter(!party_affiliation %in% c('Don\'t know','No answer', 'NA'))
+
+Welfare <-Welfare %>%
+  filter(!is.na(Welfare))
+
+Welfare = na.omit(Welfare)
+
+Welfare %>%
+  group_by(party_affiliation) %>%
+  ggplot(aes(x = party_affiliation, fill = Welfare)) + geom_bar(position = 'dodge') +ggtitle('Party Affiliation vs Welfare Support')+xlab('Political Party') + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+```
+
+```{r}
+TooMuch <-Welfare
+
+TooMuch <-TooMuch %>%
+  filter(Welfare %in% c('Too much'))
+
+
+TooMuch <-TooMuch %>%
+  mutate(completed_education = as.numeric(completed_education))
+
+TooMuch <-TooMuch %>%
+  filter(!is.na(TooMuch))
+
+summary(TooMuch$completed_education)
+
+```
+
+**Analysis: ** Examining the bar chart, relative to the other political parties, those in the Strong republican and Not str republican categories think the government supports welfare too much. Interestingly, a distinct majority of Not str democrats think that the government is doing too much to help the poor! The mean education level for those who think that Welfare support is too high is 12.82.The median, however, is a 12-indicating they only completed high school. 
